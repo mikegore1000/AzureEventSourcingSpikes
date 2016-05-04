@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Security.Cryptography.X509Certificates;
+using EventSourcedAggregateSpikes.Domain;
+using EventSourcedAggregateSpikes.Persistence;
 
 namespace EventSourcedAggregateSpikes
 {
@@ -12,7 +13,7 @@ namespace EventSourcedAggregateSpikes
 
             // Just comment/uncomment the aggregate approach you want to run...
             // SampleBasicAggregate agg = new SampleBasicAggregate(stream);
-            SampleBasicAggregateWithMemento agg = new SampleBasicAggregateWithMemento(stream);
+            SampleBasicAggregateWithMemento agg = new SampleBasicAggregateWithMemento("STREAM ID", stream);
 
             agg.AckowledgeOrderPlaced();
 
@@ -28,52 +29,13 @@ namespace EventSourcedAggregateSpikes
         }
     }
 
-    // Projection should only allow reads, aggregates allow reads & writes
-    public abstract class ProjectionRepository<T>
-    {
-        private readonly Func<IEnumerable<object>, T> factoryFunc;
-
-        protected ProjectionRepository(Func<IEnumerable<object>, T> factoryFunc)
-        {
-            this.factoryFunc = factoryFunc;
-        }
-
-        public T Get(string streamId)
-        {
-            // TODO: Get events from event store
-            var events = new object[] { };
-
-            return this.factoryFunc(events);
-        }
-    }
-
-    public abstract class AggregateRepository<T> : ProjectionRepository<T> where T : IAggregate
-    {
-        protected AggregateRepository(Func<IEnumerable<object>, T> factoryFunc) : base(factoryFunc)
-        {
-        }
-
-        // TODO: May make more sense for the aggregate to know it's own id
-        public void Save(string streamId, T aggregate)
-        {
-            // TODO: Update stream - would possibly want some way of updating the version in the aggregate, though this would suggest that its possible to save again (not the best idea)
-        }
-    }
-
     // Only way to remove the boilerplate for each repository here is to ensure we have a consistent, public method for applying events to the stream (could make this
     // inherit from the interface in an explicit way - would have to assume the constructor had no params though, which is the nice thing about taking in the event stream
     public class SampleBasicAggregateRepository : AggregateRepository<SampleBasicAggregate>
     {
-        public SampleBasicAggregateRepository() : base(events => new SampleBasicAggregate(events))
+        public SampleBasicAggregateRepository() : base((streamId, events) => new SampleBasicAggregate(streamId, events))
         {
         }
-    }
-
-    public interface IAggregate
-    {
-        IEnumerable<object> UnappliedEvents { get; }
-
-        int Version { get; }
     }
 
     // NOTE: Do we even need a base class for something so basic?  Apart from tracking the current stream revision and
@@ -88,14 +50,18 @@ namespace EventSourcedAggregateSpikes
 
         private readonly List<object> unappliedEvents = new List<object>();
 
-        public SampleBasicAggregate(IEnumerable<object> events)
+        public SampleBasicAggregate(string streamId, IEnumerable<object> events)
         {
+            StreamId = streamId;
+
             foreach (var e in events)
             {
                 When((dynamic)e);
                 Version++;
             }
         }
+
+        public string StreamId { get; }
 
         public IEnumerable<object> UnappliedEvents => unappliedEvents.AsReadOnly();
 
@@ -141,14 +107,18 @@ namespace EventSourcedAggregateSpikes
 
         private readonly List<object> unappliedEvents = new List<object>();
 
-        public SampleBasicAggregateWithMemento(IEnumerable<object> events)
+        public SampleBasicAggregateWithMemento(string streamId, IEnumerable<object> events)
         {
+            StreamId = streamId;
+
             foreach (var e in events)
             {
                 state.When((dynamic)e);
                 Version++;
             }
         }
+        
+        public string StreamId { get; }
 
         // Would still hold the events here, unapplied events are part of the aggregate, not the memento
         public IEnumerable<object> UnappliedEvents => unappliedEvents.AsReadOnly();
