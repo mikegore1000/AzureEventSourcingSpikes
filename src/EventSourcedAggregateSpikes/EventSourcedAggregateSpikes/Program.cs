@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using EventSourcedAggregateSpikes.Domain;
 using EventSourcedAggregateSpikes.Persistence;
+using NEventStore;
 
 namespace EventSourcedAggregateSpikes
 {
@@ -33,7 +34,7 @@ namespace EventSourcedAggregateSpikes
     // inherit from the interface in an explicit way - would have to assume the constructor had no params though, which is the nice thing about taking in the event stream
     public class SampleBasicAggregateRepository : AggregateRepository<SampleBasicAggregate>
     {
-        public SampleBasicAggregateRepository() : base((streamId, events) => new SampleBasicAggregate(streamId, events))
+        public SampleBasicAggregateRepository(IStoreEvents eventStore) : base(eventStore, (streamId, events) => new SampleBasicAggregate(streamId, events))
         {
         }
     }
