@@ -47,9 +47,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Domain\IAggregate.cs" />
-    <Compile Include="Persistence\AggregateRepository.cs" />
-    <Compile Include="Persistence\ProjectionRepository.cs" />
+    <Compile Include="Core\EventStream.cs" />
+    <Compile Include="Core\IEventStore.cs" />
+    <Compile Include="Events.cs" />
+    <Compile Include="OrderAggregate.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
